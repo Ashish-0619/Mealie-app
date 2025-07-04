@@ -1,11 +1,8 @@
-repositories:
-  - name: local
-    url: file://./mealie
 
 releases:
   - name: mealie
     namespace: mealie
-    chart: local/mealie
+    chart: ./mealie
     values:
-      - values.yaml
-
+      - ./mealie/values.yaml
+    installed: false

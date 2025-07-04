@@ -22,7 +22,7 @@ spec:
           ports:
             -  containerPort: {{ .Values.service.port }}
           volumeMounts:
-            - mounthPath: "/app/data"
+            - mountPath: "/app/data"
               name: mealie-data
       volumes:
         - name: mealie-data
