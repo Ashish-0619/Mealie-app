@@ -30,7 +30,7 @@ mealie/
 ├── helmfile.yaml               # Helmfile config
 └── README.md                   # You're here!
 
-
+```
 ---
 
 ## 🚀 Installation & Deployment
@@ -40,15 +40,15 @@ mealie/
 ```bash
 git clone https://github.com/<your-username>/mealie-helm.git
 cd mealie-helm
-
+```
 Create the Namespace
-
+```bash
 kubectl create namespace mealie
-
+```
 3. Deploy with Helmfile
-
+```bash
 helmfile apply
-
+``
 
 🌍 Access the Application
 
