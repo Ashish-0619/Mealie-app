@@ -89,6 +89,7 @@ pipeline {
                 // This requires Docker to be installed and running on the Jenkins host.
                 docker {
                     image 'openjdk:17-jdk-slim'
+                    args '-u root'
                     // Removed 'user 'root'' as it's not a valid option here.
                     // apt-get commands usually run as root by default in most slim images.
                 }
