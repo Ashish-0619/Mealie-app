@@ -103,8 +103,8 @@ pipeline {
                     // Download OWASP Dependency-Check
                     sh "wget -q -O dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip"
                     sh "unzip -o -q dependency-check.zip"
-                    sh "ls -R dependency-check-8.4.2"
-                    sh "mv dependency-check-8.4.2/bin/dependency-check.sh ."
+                    sh "ls -R dependency-check"
+                    sh "mv dependency-check/bin/dependency-check.sh ."
                     sh "chmod +x dependency-check.sh"
 
                     // Run Dependency-Check against the project directory
