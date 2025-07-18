@@ -92,8 +92,9 @@ pipeline {
             steps {
                 script {
                     echo "Running OWASP Dependency-Check..."
-                    // Download OWASP Dependency-Check if not already present
-                    // In a real scenario, you might pre-install this on your agent or use a custom Docker image
+                    // Install wget as it's a slim image and might not have it
+                    sh "apt-get update && apt-get install -y wget unzip"
+                    // Download OWASP Dependency-Check
                     sh "wget -q -O dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip"
                     sh "unzip -q dependency-check.zip"
                     sh "mv dependency-check-8.4.2/bin/dependency-check.sh ."
