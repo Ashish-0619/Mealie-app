@@ -5,12 +5,12 @@
 def dockerImageName = "mealie-app"
 def dockerRegistry = "your-docker-registry.com" // Replace with your Docker registry if you have one
 def dockerRegistryCredsId = "docker-hub-creds" // Jenkins credential ID for Docker registry login
-def sonarQubeUrl = "http://your-sonarqube-server:9000" // Replace with your SonarQube server URL
+def sonarQubeUrl = "http://your-sonarqube-server:9000" // Replace with your SonarQube server URL (e.g., http://localhost:9000 if running locally)
 def sonarQubeTokenId = "sonarqube-token" // Jenkins credential ID for SonarQube token
 
 pipeline {
     // Agent definition: 'any' means Jenkins will pick any available agent.
-    // For production, you might want to specify a label for a dedicated agent.
+    // For a local setup, this typically means the Jenkins controller itself or a local agent.
     agent any
 
     // Define tools required for the pipeline.
@@ -51,7 +51,8 @@ pipeline {
         // Analyzes Python code for common security vulnerabilities without running it.
         stage('SAST - Bandit') {
             agent {
-                // Use a Docker agent with Python pre-installed for isolated execution
+                // Use a Docker agent with Python pre-installed for isolated execution.
+                // This requires Docker to be installed and running on the Jenkins host.
                 docker { image 'python:3.9-slim-buster' }
             }
             steps {
@@ -84,7 +85,8 @@ pipeline {
         // Scans project dependencies (e.g., requirements.txt) for known vulnerabilities.
         stage('Dependency Scan - OWASP DC') {
             agent {
-                // Use a Docker agent with Java pre-installed for OWASP Dependency-Check
+                // Use a Docker agent with Java pre-installed for OWASP Dependency-Check.
+                // This requires Docker to be installed and running on the Jenkins host.
                 docker { image 'openjdk:17-jdk-slim' }
             }
             steps {
@@ -119,6 +121,8 @@ pipeline {
         // (Assuming you will add unit tests to your project, e.g., using pytest)
         stage('Unit Tests') {
             agent {
+                // Use a Docker agent with Python pre-installed.
+                // This requires Docker to be installed and running on the Jenkins host.
                 docker { image 'python:3.9-slim-buster' }
             }
             steps {
@@ -142,14 +146,7 @@ pipeline {
         // Stage 5: Build Docker Image
         // Builds the Docker image for the Mealie-app.
         stage('Build Docker Image') {
-            agent {
-                // Requires a Docker-enabled agent (e.g., 'docker:dind' or agent with Docker installed)
-                // For simplicity, assuming Docker is available on the agent where this stage runs.
-                // If using a 'docker' agent, ensure it has access to the Docker daemon.
-                // Example: agent { docker { image 'docker:dind' } } -- but this needs privileged mode
-                // A better approach is to use a Jenkins agent with Docker installed and configured.
-                label 'docker-host' // Replace 'docker-host' with a label for your Docker-enabled agent
-            }
+            agent any // Assuming Docker is installed and accessible on the Jenkins host/agent
             steps {
                 script {
                     echo "Building Docker image: ${dockerImageName}:latest"
@@ -174,16 +171,13 @@ pipeline {
         // Stage 6: Container Security Scanning - Trivy
         // Scans the built Docker image for known vulnerabilities.
         stage('Container Scan - Trivy') {
-            agent {
-                // Requires a Docker-enabled agent with Trivy installed or a Docker image with Trivy
-                label 'docker-host' // Replace 'docker-host' with a label for your Docker-enabled agent
-            }
+            agent any // Assuming Trivy is installed and Docker is accessible on the Jenkins host/agent
             steps {
                 script {
                     echo "Running Trivy scan on Docker image: ${dockerImageName}:latest"
                     // Install Trivy (if not pre-installed on agent) or use a Trivy Docker image
                     // For example: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${dockerImageName}:latest
-                    // For simplicity, assuming Trivy is installed on the 'docker-host' agent.
+                    // For simplicity, assuming Trivy is installed on the local Jenkins agent.
                     def trivyCommand = "trivy image --format json -o trivy_report.json ${dockerImageName}:latest"
                     try {
                         sh trivyCommand
@@ -205,14 +199,18 @@ pipeline {
             // This stage requires the SonarQube Scanner for Jenkins plugin and a running SonarQube server.
             // Configure SonarQube server in Jenkins -> Manage Jenkins -> Configure System -> SonarQube Servers.
             // Configure SonarQube token in Jenkins Credentials with ID 'sonarqube-token'.
+            agent any // SonarQube analysis runs on the Jenkins host/agent
             steps {
                 withSonarQubeEnv(credentialsId: sonarQubeTokenId, installationName: 'SonarQube') { // 'SonarQube' is the name configured in Jenkins
-                    sh "sonar-scanner \\
-                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
-                        -Dsonar.projectName='${SONAR_PROJECT_NAME}' \\
-                        -Dsonar.sources=. \\
-                        -Dsonar.host.url=${sonarQubeUrl} \\
-                        -Dsonar.login=${SONAR_PROJECT_KEY}" // Use project key as login if using token
+                    // Using triple quotes for multi-line shell command for better Groovy compatibility
+                    sh """
+                        sonar-scanner \\
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
+                            -Dsonar.projectName='${SONAR_PROJECT_NAME}' \\
+                            -Dsonar.sources=. \\
+                            -Dsonar.host.url=${sonarQubeUrl} \\
+                            -Dsonar.login=${SONAR_PROJECT_KEY}
+                    """
                     echo "SonarQube analysis triggered. Check SonarQube dashboard for results."
                 }
             }
@@ -248,6 +246,7 @@ pipeline {
         // This stage typically requires the application to be deployed and running in a test environment.
         // OWASP ZAP is a common tool for DAST.
         stage('DAST - OWASP ZAP (Placeholder)') {
+            agent any // DAST can run on the Jenkins host/agent, but requires a deployed app
             steps {
                 script {
                     echo "DAST requires the application to be deployed and running."
@@ -265,16 +264,14 @@ pipeline {
         // Stage 9: Deployment to Staging
         // Deploys the application to a staging environment after all checks pass.
         stage('Deploy to Staging') {
-            agent {
-                label 'deployment-agent' // Replace with a label for your deployment agent
-            }
+            agent any // Deployment commands run on the Jenkins host/agent
             steps {
                 script {
                     echo "Deploying ${dockerImageName}:latest to Staging environment..."
                     // Example: Deploy using Docker Compose, Kubernetes, or other deployment tools
-                    // For Docker Compose:
+                    // For Docker Compose (assuming docker-compose.yml is in your repo):
                     // sh "docker-compose -f docker-compose.yml up -d"
-                    // For Kubernetes:
+                    // For local Kubernetes (Minikube/Kind):
                     // sh "kubectl apply -f kubernetes-deployment.yaml"
                     echo "Deployment to Staging completed. Verify application functionality."
                 }
@@ -304,9 +301,7 @@ pipeline {
             when {
                 environment name: 'BRANCH_NAME', value: 'main' // Only for 'main' branch
             }
-            agent {
-                label 'production-agent' // Replace with a label for your production deployment agent
-            }
+            agent any // Production deployment commands run on the Jenkins host/agent
             steps {
                 script {
                     echo "Deploying ${dockerImageName}:latest to Production environment..."
@@ -338,4 +333,3 @@ pipeline {
         }
     }
 }
-
