@@ -87,12 +87,16 @@ pipeline {
             agent {
                 // Use a Docker agent with Java pre-installed for OWASP Dependency-Check.
                 // This requires Docker to be installed and running on the Jenkins host.
-                docker { image 'openjdk:17-jdk-slim' }
+                docker { 
+                    image 'openjdk:17-jdk-slim'
+                    // Run as root to allow apt-get update and install
+                    user 'root' 
+                }
             }
             steps {
                 script {
                     echo "Running OWASP Dependency-Check..."
-                    // Install wget as it's a slim image and might not have it
+                    // Install wget and unzip as it's a slim image and might not have them
                     sh "apt-get update && apt-get install -y wget unzip"
                     // Download OWASP Dependency-Check
                     sh "wget -q -O dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip"
