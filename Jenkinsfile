@@ -230,4 +230,112 @@ pipeline {
                         // For this to work, the Jenkins job must be configured to poll SonarQube for Quality Gate status.
                         // You might need to adjust the 'installationName' to match your SonarQube setup in Jenkins.
                         try {
-                            // This step is provided by the So
+                            // This step is provided by the SonarQube Scanner for Jenkins plugin
+                            // It polls the SonarQube server for the Quality Gate status
+                            // and will fail the build if the Quality Gate is not passed.
+                            // The 'installationName' here refers to the name you gave your SonarQube server
+                            // configuration in Jenkins global settings.
+                            timeout(time: 5, unit: 'MINUTES') { // Wait up to 5 minutes for Quality Gate check
+                                waitForQualityGate abortPipeline: true
+                            }
+                            echo "SonarQube Quality Gate Passed."
+                        } catch (Exception e) {
+                            echo "SonarQube Quality Gate Failed. Please review SonarQube dashboard."
+                            error "SonarQube Quality Gate Failed."
+                        }
+                    }
+                }
+            }
+        }
+
+        // Stage 8: Dynamic Application Security Testing (DAST) - Placeholder
+        // This stage typically requires the application to be deployed and running in a test environment.
+        // OWASP ZAP is a common tool for DAST.
+        stage('DAST - OWASP ZAP (Placeholder)') {
+            agent any // DAST can run on the Jenkins host/agent, but requires a deployed app
+            steps {
+                script {
+                    echo "DAST requires the application to be deployed and running."
+                    echo "To implement DAST, you would typically:"
+                    echo "1. Deploy the Docker image to a temporary staging environment (e.g., Kubernetes, Docker Compose)."
+                    echo "2. Run a DAST tool like OWASP ZAP against the deployed application's URL."
+                    echo "   Example: docker run -v ${PWD}:/zap/wrk/:rw -t owasp/zap2docker-stable zap-baseline.py -t http://your-app-url:5000 -I -r zap_report.html"
+                    echo "3. Analyze the DAST report and fail the pipeline if critical vulnerabilities are found."
+                    echo "Skipping DAST for now as it requires a running environment."
+                    // currentBuild.result = 'UNSTABLE' // Mark as unstable if DAST is skipped but important
+                }
+            }
+        }
+
+        // Stage 9: Deployment to Staging
+        // Deploys the application to a staging environment after all checks pass.
+        stage('Deploy to Staging') {
+            agent any // Deployment commands run on the Jenkins host/agent
+            steps {
+                script {
+                    echo "Deploying ${env.DOCKER_IMAGE_NAME}:latest to Staging environment..."
+                    // Example: Deploy using Docker Compose, Kubernetes, or other deployment tools
+                    // For Docker Compose (assuming docker-compose.yml is in your repo):
+                    // sh "docker-compose -f docker-compose.yml up -d"
+                    // For local Kubernetes (Minikube/Kind):
+                    // sh "kubectl apply -f kubernetes-deployment.yaml"
+                    echo "Deployment to Staging completed. Verify application functionality."
+                }
+            }
+        }
+
+        // Stage 10: Manual Approval for Production (Optional)
+        // Adds a manual gate before deploying to production.
+        stage('Manual Approval for Prod') {
+            when {
+                environment name: 'BRANCH_NAME', value: 'main' // Only for 'main' branch
+            }
+            steps {
+                script {
+                    echo "Waiting for manual approval to deploy to Production..."
+                    timeout(time: 1, unit: 'HOURS') { // Timeout after 1 hour if no approval
+                        input message: 'Approve deployment to Production?', ok: 'Deploy to Production'
+                    }
+                    echo "Manual approval received. Proceeding to Production deployment."
+                }
+            }
+        }
+
+        // Stage 11: Deployment to Production
+        // Deploys the application to the production environment.
+        stage('Deploy to Production') {
+            when {
+                environment name: 'BRANCH_NAME', value: 'main' // Only for 'main' branch
+            }
+            agent any // Production deployment commands run on the Jenkins host/agent
+            steps {
+                script {
+                    echo "Deploying ${env.DOCKER_IMAGE_NAME}:latest to Production environment..."
+                    // Production deployment commands
+                    echo "Deployment to Production completed successfully!"
+                }
+            }
+        }
+    }
+
+    // Post-build actions: run regardless of pipeline success or failure
+    post {
+        always {
+            echo "Pipeline finished."
+            // Clean up workspace to free up disk space
+            cleanWs()
+        }
+        success {
+            echo "Pipeline completed successfully! All checks passed."
+            // You can add notifications here (e.g., Slack, Email)
+        }
+        failure {
+            echo "Pipeline failed! Review logs for errors."
+            // You can add failure notifications here
+        }
+        unstable {
+            echo "Pipeline finished with unstable status (some security issues found or warnings)."
+            // You can add unstable notifications here
+        }
+    }
+}
