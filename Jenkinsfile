@@ -102,7 +102,7 @@ pipeline {
                     sh "apt-get update && apt-get install -y wget unzip"
                     // Download OWASP Dependency-Check
                     sh "wget -q -O dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip"
-                    sh "unzip -q dependency-check.zip"
+                    sh "unzip -o -q dependency-check.zip"
                     sh "ls -R dependency-check-8.4.2"
                     sh "mv dependency-check-8.4.2/bin/dependency-check.sh ."
                     sh "chmod +x dependency-check.sh"
