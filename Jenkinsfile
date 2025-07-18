@@ -93,6 +93,11 @@ pipeline {
                     // Removed 'user 'root'' as it's not a valid option here.
                     // apt-get commands usually run as root by default in most slim images.
                 }
+                
+            }
+            environment {
+                // Explicitly set JAVA_HOME for the container
+                JAVA_HOME = '/usr/local/openjdk-17' // Common path for OpenJDK in slim images
             }
             steps {
                 script {
