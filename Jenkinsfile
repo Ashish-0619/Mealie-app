@@ -18,7 +18,7 @@ pipeline {
         DOCKER_IMAGE_NAME = "mealie-app"
         DOCKER_REGISTRY = "your-docker-registry.com" // Replace with your Docker registry if you have one
         DOCKER_REGISTRY_CREDS_ID = "docker-hub-creds" // Jenkins credential ID for Docker registry login
-        SONAR_QUBE_URL = "http://your-sonarqube-server:9000" // Replace with your SonarQube server URL (e.g., http://localhost:9000 if running locally)
+        SONAR_QUBE_URL = "http://localhost:9000" // Replace with your SonarQube server URL (e.g., http://localhost:9000 if running locally)
         SONAR_QUBE_TOKEN_ID = "sonarqube-token" // Jenkins credential ID for SonarQube token
     }
 
@@ -99,7 +99,7 @@ pipeline {
                     echo "Running OWASP Dependency-Check..."
                     // Install wget and unzip as it's a slim image and might not have them
                     // These commands will run as the default user in the container, which is often root in slim images.
-                    sh "sudo apt-get install -y wget unzip"
+                    sh "apt-get install -y wget unzip"
                     // Download OWASP Dependency-Check
                     sh "wget -q -O dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip"
                     sh "unzip -q dependency-check.zip"
