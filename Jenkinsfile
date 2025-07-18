@@ -97,7 +97,7 @@ pipeline {
             }
             environment {
                 // Explicitly set JAVA_HOME for the container
-                JAVA_HOME = '/usr/local/openjdk-17' // Common path for OpenJDK in slim images
+                JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64/bin/' // Common path for OpenJDK in slim images
             }
             steps {
                 script {
