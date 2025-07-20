@@ -96,38 +96,37 @@ pipeline {
                 
             }
             steps {
-                script {
-                    echo "Running OWASP Dependency-Check..."
-                    // Install wget and unzip as it's a slim image and might not have them
-                    // These commands will run as the default user in the container, which is often root in slim images.
-
-                    sh '''
-                      export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
-                      export PATH=$JAVA_HOME/bin:$PATH
-                    '''
-                    sh "apt-get update && apt-get install -y wget unzip"
-                    // Download OWASP Dependency-Check
-                    sh "wget -q -O dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip"
-                    sh "unzip -o -q dependency-check.zip"
-                    sh "ls -R dependency-check"
-                    sh "mv dependency-check/bin/dependency-check.sh ."
-                    sh "chmod +x dependency-check.sh"
-
-                    // Run Dependency-Check against the project directory
-                    // '-f JSON' specifies JSON output format
-                    // '-o dependency-check-report.json' outputs to a file
-                    // '-s .' scans the current directory (which contains requirements.txt)
-                    def dcCommand = "./dependency-check.sh --scan . --format JSON --out dependency-check-report.json"
-                    try {
-                        sh dcCommand
-                        echo "OWASP Dependency-Check completed. Review dependency-check-report.json for findings."
-                    } catch (Exception e) {
-                        echo "OWASP Dependency-Check failed or found issues. Check logs for details."
-                        currentBuild.result = 'UNSTABLE'
+                  sh '''
+                    echo "[INFO] Detecting JAVA_HOME in container"
+                    export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+                    export PATH=$JAVA_HOME/bin:$PATH
+                    echo "JAVA_HOME is: $JAVA_HOME"
+                    java -version
+                
+                    echo "[INFO] Installing dependencies"
+                    apt-get update && apt-get install -y wget unzip curl
+                
+                    echo "[INFO] Downloading OWASP Dependency-Check"
+                    curl -L -o dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip
+                    unzip -o dependency-check.zip
+                    chmod +x dependency-check/bin/dependency-check.sh
+                
+                    echo "[INFO] Running Dependency Check"
+                    dependency-check/bin/dependency-check.sh --scan . --format JSON --out dependency-check-report.json
+                  '''
+}
+            post {
+                  always {
+                    script {
+                      if (fileExists('dependency-check-report.json')) {
+                        archiveArtifacts artifacts: 'dependency-check-report.json', fingerprint: true
+                      } else {
+                        echo 'dependency-check-report.json was not generated.'
+                      }
                     }
-                    archiveArtifacts artifacts: 'dependency-check-report.json', fingerprint: true
-                }
-            }
+                  }
+}
+
         }
 
         // Stage 4: Unit Testing
