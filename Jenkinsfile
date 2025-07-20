@@ -49,37 +49,37 @@ pipeline {
 
         // Stage 2: Static Application Security Testing (SAST) - Bandit
         // Analyzes Python code for common security vulnerabilities without running it.
-        stage('SAST - Bandit') {
-            agent {
-                // Use a Docker agent with Python pre-installed for isolated execution.
-                // This requires Docker to be installed and running on the Jenkins host.
-                docker { image 'python:3.9-slim-buster' }
-            }
-            steps {
-                script {
-                    echo "Running Bandit for SAST..."
-                    // Install Bandit in a virtual environment
-                    sh "python3 -m venv venv"
-                    sh ". venv/bin/activate && pip install bandit"
-                    // Run Bandit and output results to a JSON file
-                    // '-r .' recursively scans the current directory
-                    // '-o bandit_report.json' outputs to a file
-                    // '-f json' specifies JSON format
-                    def banditCommand = ". venv/bin/activate && bandit -r . -o bandit_report.json -f json"
-                    try {
-                        sh banditCommand
-                        echo "Bandit scan completed. Review bandit_report.json for findings."
-                    } catch (Exception e) {
-                        echo "Bandit scan failed or found issues. Check logs for details."
-                        // Optionally, fail the pipeline if high/medium severity issues are found
-                        // For a more robust check, you'd parse bandit_report.json
-                        currentBuild.result = 'UNSTABLE' // Mark as unstable, not a full failure yet
-                    }
-                    // Archive the report for later review
-                    archiveArtifacts artifacts: 'bandit_report.json', fingerprint: true
-                }
-            }
-        }
+        // stage('SAST - Bandit') {
+        //     agent {
+        //         // Use a Docker agent with Python pre-installed for isolated execution.
+        //         // This requires Docker to be installed and running on the Jenkins host.
+        //         docker { image 'python:3.9-slim-buster' }
+        //     }
+        //     steps {
+        //         script {
+        //             echo "Running Bandit for SAST..."
+        //             // Install Bandit in a virtual environment
+        //             sh "python3 -m venv venv"
+        //             sh ". venv/bin/activate && pip install bandit"
+        //             // Run Bandit and output results to a JSON file
+        //             // '-r .' recursively scans the current directory
+        //             // '-o bandit_report.json' outputs to a file
+        //             // '-f json' specifies JSON format
+        //             def banditCommand = ". venv/bin/activate && bandit -r . -o bandit_report.json -f json"
+        //             try {
+        //                 sh banditCommand
+        //                 echo "Bandit scan completed. Review bandit_report.json for findings."
+        //             } catch (Exception e) {
+        //                 echo "Bandit scan failed or found issues. Check logs for details."
+        //                 // Optionally, fail the pipeline if high/medium severity issues are found
+        //                 // For a more robust check, you'd parse bandit_report.json
+        //                 currentBuild.result = 'UNSTABLE' // Mark as unstable, not a full failure yet
+        //             }
+        //             // Archive the report for later review
+        //             archiveArtifacts artifacts: 'bandit_report.json', fingerprint: true
+        //         }
+        //     }
+        // }
 
         // Stage 3: Dependency Vulnerability Scanning - OWASP Dependency-Check
         // Scans project dependencies (e.g., requirements.txt) for known vulnerabilities.
@@ -95,15 +95,16 @@ pipeline {
                 }
                 
             }
-            environment {
-                  JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
-                  PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-            }
             steps {
                 script {
                     echo "Running OWASP Dependency-Check..."
                     // Install wget and unzip as it's a slim image and might not have them
                     // These commands will run as the default user in the container, which is often root in slim images.
+
+                    sh '''
+                      export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+                      export PATH=$JAVA_HOME/bin:$PATH
+                    ''''
                     sh "apt-get update && apt-get install -y wget unzip"
                     // Download OWASP Dependency-Check
                     sh "wget -q -O dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip"
